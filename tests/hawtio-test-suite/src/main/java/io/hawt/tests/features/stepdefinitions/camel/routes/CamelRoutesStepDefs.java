@@ -8,9 +8,6 @@ import io.hawt.tests.features.pageobjects.fragments.camel.tabs.routes.CamelRoute
 import io.hawt.tests.features.pageobjects.fragments.camel.tabs.routes.CamelRoutes;
 import io.hawt.tests.features.pageobjects.fragments.camel.tabs.routes.CamelSource;
 import io.hawt.tests.features.pageobjects.fragments.camel.tabs.routes.CamelTrace;
-import io.hawt.tests.features.pageobjects.fragments.camel.tabs.routes.CamelProfile;
-import io.hawt.tests.features.pageobjects.fragments.Table;
-
 public class CamelRoutesStepDefs {
     private final CamelDebug camelDebug = new CamelDebug();
     private final CamelRoutes camelRoutes = new CamelRoutes();
@@ -18,8 +15,6 @@ public class CamelRoutesStepDefs {
     private final CamelSource camelSource = new CamelSource();
     private final CamelProperties camelProperties = new CamelProperties();
     private final CamelTrace camelTrace = new CamelTrace();
-    private final CamelProfile camelProfile = new CamelProfile();
-    private final Table table = new Table();
 
     @When("^User clicks on Delete button in dropdown in routes table$")
     public void userClicksOnDeleteButtonRoutesTable() {
@@ -121,20 +116,5 @@ public class CamelRoutesStepDefs {
     @Then("^Tracing not shows diagram$")
     public void traceDiagramIsNotShown() {
         camelTrace.traceDiagramIsNotShown();
-    }
-
-    @Then("^Camel Profile column \"([^\"]*)\" is not empty$")
-    public void camelProfileColumnIsNotEmpty(String column) {
-        table.checkColumnIsNotEmpty(column);
-    }
-
-    @Then("^Camel Profile column \"([^\"]*)\" has integer values$")
-    public void camelProfileColumnHasIntegerValues(String column) {
-        camelProfile.columnHasIntegerValues(column);
-    }
-
-    @Then("^Camel Profile column \"([^\"]*)\" has values \"([^\"]*)\"$")
-    public void camelProfileColumnHasValues(String column, String values) {
-        camelProfile.columnHasValues(column, values);
     }
 }
