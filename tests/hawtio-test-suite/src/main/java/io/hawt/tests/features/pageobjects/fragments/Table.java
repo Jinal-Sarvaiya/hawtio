@@ -18,7 +18,7 @@ import static com.codeborne.selenide.CollectionCondition.allMatch;
 import org.openqa.selenium.NotFoundException;
 
 import io.hawt.tests.features.pageobjects.pages.HawtioPage;
-
+import io.hawt.tests.features.pageobjects.pages.camel.CamelPage;
 
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
@@ -30,7 +30,9 @@ import java.util.List;
 /**
  * Represent a common Table used in Hawtio with common methods.
  */
-public class Table extends HawtioPage{
+public class Table {
+    private final HawtioPage hawtioPage = new HawtioPage();
+
     /**
      * Get row of table.
      *
@@ -114,14 +116,16 @@ public class Table extends HawtioPage{
         clearFilter();
         selectFilter(filter);
         searchFor(value);
-        clickButton("Add Filter");    }
+        hawtioPage.clickButton("Add Filter");    
+    }
 
     /**
      * Clears existing filters if the button is visible and enabled.
      */
     public void clearFilter() {
-        if ($(byTagAndText("button", "Clear all filters")).is(visible)) {
-            clickButtonByTagAndText("button", "Clear all filters");
+        final SelenideElement clearFilterButton = $(byTagAndText("button", "Clear all filters"));
+        if (clearFilterButton.is(visible)) {
+            hawtioPage.clickButtonByTagAndText("button", "Clear all filters");
         }
     }
 
@@ -129,7 +133,7 @@ public class Table extends HawtioPage{
      * Opens the category dropdown and selects the filter type.
      */
     public void selectFilter(String filter) {
-        clickButtonByDataTestId("attribute-select-toggle");
+        hawtioPage.clickButtonByDataTestId("attribute-select-toggle");
         $$(".pf-v6-c-menu button, .pf-v6-c-dropdown button")
             .findBy(exactText(filter))
             .shouldBe(visible, enabled)
@@ -140,7 +144,7 @@ public class Table extends HawtioPage{
      * Enters search text into the search input.
      */
     public void searchFor(String value) {
-        SelenideElement searchInput = $("input[aria-label='Search input']").shouldBe(visible);
+        final SelenideElement searchInput = $("input[aria-label='Search input']").shouldBe(visible);
         searchInput.clear();
         searchInput.setValue(value).pressEnter();
     }    
@@ -154,25 +158,35 @@ public class Table extends HawtioPage{
     public void sortAttributes(String desiredOrder, String headerName) {
         final SelenideElement header = $$("th").findBy(text(headerName)).$("span").shouldBe(visible);
         final String currentOrder = header.ancestor("th").getAttribute("aria-sort");
+
+        // Click to achieve desired order if needed
+        if (!desiredOrder.equals(currentOrder)) {
+            header.click();
+            String newOrder = header.ancestor("th").getAttribute("aria-sort");
+            
+            // Handle three-state toggles (None -> Ascending -> Descending)
+            if ("descending".equals(desiredOrder) && "ascending".equals(newOrder)) {
+                header.click();
+            }
+        }
+
+        // Verify the header shows correct sort state
+        header.ancestor("th").shouldHave(attribute("aria-sort", desiredOrder));
+
+        // Fetch the sorted column data (after UI has updated)
         int colIndex = getColumnsPosition(headerName);
-        ElementsCollection attributeColumn = $$(byXpath("//tbody/tr/td[" + colIndex + "]")).shouldBe(sizeGreaterThanOrEqual(1));
+        ElementsCollection attributeColumn = $$(byXpath("//tbody/tr/td[" + colIndex + "]"))
+                .shouldBe(sizeGreaterThanOrEqual(1));
 
+        // Create expected sorted list from current values
         List<String> expectedList = new ArrayList<>(attributeColumn.texts());
-
         if ("ascending".equals(desiredOrder)) {
             Collections.sort(expectedList);
         } else {
             Collections.sort(expectedList, Collections.reverseOrder());
         }
 
-        if (!desiredOrder.equals(currentOrder)) {
-            header.click();
-            String newOrder = header.ancestor("th").getAttribute("aria-sort");
-            if ("descending".equals(desiredOrder) && "ascending".equals(newOrder)) {
-                header.click();
-            }
-        }
-        header.ancestor("th").shouldHave(attribute("aria-sort", desiredOrder));
+        // Verify UI matches expected sort
         attributeColumn.shouldHave(exactTextsCaseSensitive(expectedList));
     }
 }

@@ -98,7 +98,7 @@ Feature: Checking the functionality of Camel Routes page.
     Given User is on "Camel" page
     And User is on Camel "routes" folder of "SampleCamel" context
     When User clicks on Camel "Endpoints (in/out)" tab
-    When User filters endpoints by "<filterType>" and searches "<value>"
+    When User filters values by "<filterType>" and searches "<value>"
     Then Camel table "<column>" column has "<value>" value
 
     Examples: Endpoint filter combinations
@@ -106,4 +106,3 @@ Feature: Checking the functionality of Camel Routes page.
       | URL        | quartz://simple?trigger.repeatInterval=10000 | URL       |
       | Route ID   | simple                                       | Route ID  |
       | Direction  | in                                           | Direction |
-      

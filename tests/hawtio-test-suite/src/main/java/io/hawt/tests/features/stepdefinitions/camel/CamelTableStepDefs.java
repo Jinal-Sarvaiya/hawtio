@@ -68,8 +68,8 @@ public class CamelTableStepDefs {
         table.checkColumnHasIntegerValues(columnName);
     }    
 
-    @And("^User filters endpoints by \"([^\"]*)\" and searches \"([^\"]*)\"$")
-    public void userFiltersEndpointsAndSearches(String filterType, String value) {
+    @And("^User filters values by \"([^\"]*)\" and searches \"([^\"]*)\"$")
+    public void userFiltersValuesAndSearches(String filterType, String value) {
         table.addFilter(filterType, value);
     }    
 }
