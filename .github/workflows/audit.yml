@@ -6,18 +6,22 @@ on:
     - cron: '0 0 * * 0'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   audit:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        branch: [ main, 4.x ]
+        branch: [ main ]
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
           ref: ${{ matrix.branch }}
+          persist-credentials: false
       - name: Set up Java
         uses: actions/setup-java@v5
         with:

@@ -11,7 +11,7 @@
   <groupId>io.hawt</groupId>
   <artifactId>project</artifactId>
   <packaging>pom</packaging>
-  <version>5.2-SNAPSHOT</version>
+  <version>5.3-SNAPSHOT</version>
   <name>hawtio-java-project</name>
   <description>Hawtio :: project</description>
   <url>https://hawt.io/</url>
@@ -37,36 +37,36 @@
 
     <!-- Versions for major components -->
     <!-- Jolokia -->
-    <jolokia-version>2.5.1</jolokia-version>
+    <jolokia-version>2.6.0</jolokia-version>
     <jolokia-integration-version>0.9.0</jolokia-integration-version>
     <!-- Quarkus -->
-    <quarkus-version>3.32.3</quarkus-version>
+    <quarkus-version>3.36.2</quarkus-version>
     <!-- Spring Boot 3 -->
-    <spring-version>6.2.17</spring-version>
-    <spring-boot-version>3.5.13</spring-boot-version>
+    <spring-version>6.2.19</spring-version>
+    <spring-boot-version>3.5.15</spring-boot-version>
     <!-- Spring Boot 4 -->
     <!-- https://docs.spring.io/spring-boot/appendix/dependency-versions/coordinates.html -->
-    <spring7-version>7.0.6</spring7-version>
-    <spring-boot4-version>4.0.5</spring-boot4-version>
+    <spring7-version>7.0.8</spring7-version>
+    <spring-boot4-version>4.1.0</spring-boot4-version>
     <!-- Camel -->
     <camel-spring-boot-version>4.18.0</camel-spring-boot-version>
     <!-- Jetty -->
-    <jetty12-version>12.1.7</jetty12-version>
+    <jetty12-version>12.1.10</jetty12-version>
 
     <!-- Other dependencies -->
     <assertj-core-version>3.27.7</assertj-core-version>
     <caffeine-version>3.2.3</caffeine-version>
-    <commons-codec-version>1.21.0</commons-codec-version>
-    <commons-io-version>2.21.0</commons-io-version>
-    <commons-logging-version>1.3.5</commons-logging-version>
+    <commons-codec-version>1.22.0</commons-codec-version>
+    <commons-io-version>2.22.0</commons-io-version>
+    <commons-logging-version>1.3.6</commons-logging-version>
     <hamcrest-version>3.0</hamcrest-version>
     <httpcore-version>4.4.16</httpcore-version>
     <httpclient-version>4.5.14</httpclient-version>
     <jackson-version>2.19.2</jackson-version>
-    <junit5-version>5.14.3</junit5-version>
-    <log4j2-version>2.25.4</log4j2-version>
-    <mockito-core-version>5.20.0</mockito-core-version>
-    <nimbusds-jose-version>10.5</nimbusds-jose-version>
+    <junit5-version>5.14.4</junit5-version>
+    <log4j2-version>2.26.0</log4j2-version>
+    <mockito-core-version>5.23.0</mockito-core-version>
+    <nimbusds-jose-version>10.9.1</nimbusds-jose-version>
     <picocli-version>4.7.7</picocli-version>
     <servlet-api-version>5.0.0</servlet-api-version>
     <servlet-api61-version>6.1.0</servlet-api61-version>
@@ -87,7 +87,7 @@
     <maven-clean-plugin-version>3.5.0</maven-clean-plugin-version>
     <maven-compiler-plugin-version>3.15.0</maven-compiler-plugin-version>
     <maven-dependency-plugin-version>3.10.0</maven-dependency-plugin-version>
-    <maven-failsafe-plugin-version>3.5.4</maven-failsafe-plugin-version>
+    <maven-failsafe-plugin-version>3.5.6</maven-failsafe-plugin-version>
     <maven-release-plugin-version>3.3.1</maven-release-plugin-version>
     <maven-resources-plugin-version>2.6</maven-resources-plugin-version>
     <maven-surefire-plugin-version>3.5.5</maven-surefire-plugin-version>

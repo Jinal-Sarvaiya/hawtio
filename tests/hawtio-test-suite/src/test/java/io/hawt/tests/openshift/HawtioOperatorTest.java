@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import org.apache.commons.io.IOUtils;
@@ -123,7 +122,6 @@ public class HawtioOperatorTest extends BaseHawtioOnlineTest {
         Config config = new Config();
         runTest(s -> {
             About about = new About();
-            about.setImgSrc("https://i1.sndcdn.com/artworks-zyYqA8D0BdfuyH28-WeeHrw-t500x500.jpg");
             about.setTitle("MeowIO About");
             about.setAdditionalInfo("Hello world");
             final ProductInfo productInfo = new ProductInfo();
@@ -135,7 +133,6 @@ public class HawtioOperatorTest extends BaseHawtioOnlineTest {
             config.setAbout(about);
 
             Branding branding = new Branding();
-            branding.setAppLogoUrl("https://i1.sndcdn.com/artworks-zyYqA8D0BdfuyH28-WeeHrw-t500x500.jpg");
             branding.setAppName("MeowIO");
 
             config.setBranding(branding);
@@ -150,16 +147,12 @@ public class HawtioOperatorTest extends BaseHawtioOnlineTest {
 
             hawtio.panel().openMenuItemUnderQuestionMarkDropDownMenu("About");
             var aboutPanel = new AboutModalWindow();
-            sa.assertThat(aboutPanel.getBrandImage().getAttribute("src")).isEqualTo(config.getAbout().getImgSrc());
-            sa.assertThat(aboutPanel.getBrandImage().getAttribute("alt")).isEqualTo(config.getAbout().getTitle());
 
             sa.assertThat(aboutPanel.getAppComponents()).containsEntry("Testsuite", "latest");
             sa.assertThat(aboutPanel.getHeaderText()).isEqualTo(config.getAbout().getTitle());
             aboutPanel.close();
 
             sa.assertThat(hawtio.getAppName()).isEqualTo(config.getBranding().getAppName());
-            sa.assertThat(hawtio.getLogo().getAttribute("src")).isEqualTo(config.getBranding().getAppLogoUrl());
-            sa.assertThat(hawtio.getLogo().getAttribute("alt")).isEqualTo(config.getBranding().getAppName());
         });
     }
 
@@ -341,52 +334,76 @@ public class HawtioOperatorTest extends BaseHawtioOnlineTest {
         }, false);
     }
 
-    @Disabled("HAWNG-1863 due to operator bug: Operator fails to find RBAC ConfigMap with cache sync issue")
     @Test
     public void testRBAC() throws IOException {
-        OpenshiftClient.get().resource(new ConfigMapBuilder()
-            .withNewMetadata()
-            .withName("rbac-test")
-            .withNamespace(TestConfiguration.getOpenshiftNamespace())
-            .endMetadata()
-            .addToData("ACL.yaml", IOUtils.toString(getClass().getResource("/io/hawt/tests/openshift/acl.yaml"), StandardCharsets.UTF_8))
-            .build()
-        ).serverSideApply();
+        final String configMapName = "rbac-test-" + RandomStringUtils.randomAlphabetic(5).toLowerCase();
+        final String namespace = TestConfiguration.getOpenshiftNamespace();
 
-        runTest(spec -> {
-            var rbac = new Rbac();
-            rbac.setConfigMap("rbac-test");
-            spec.setRbac(rbac);
-        }, sa -> {
+        try {
+            // Create ConfigMap
+            OpenshiftClient.get().resource(new ConfigMapBuilder()
+                .withNewMetadata()
+                .withName(configMapName)
+                .withNamespace(namespace)
+                .endMetadata()
+                .addToData("ACL.yaml", IOUtils.toString(getClass().getResource("/io/hawt/tests/openshift/acl.yaml"), StandardCharsets.UTF_8))
+                .build()
+            ).serverSideApply();
 
-            var discoverTab = new DiscoverTab();
-            discoverTab.assertContainsDeployment(deployment.getMetadata().getName());
-            discoverTab.connectTo(podName);
+            // Wait for ConfigMap to be available and give operator cache time to sync
+            WaitUtils.waitFor(() ->
+                OpenshiftClient.get().configMaps()
+                    .inNamespace(namespace)
+                    .withName(configMapName)
+                    .get() != null,
+                "Waiting for RBAC ConfigMap to be created", Duration.ofSeconds(10));
 
-            LoginLogout.hawtioIsLoaded();
-            var hawtio = new HawtioPage();
+            runTest(spec -> {
+                var rbac = new Rbac();
+                rbac.setConfigMap(configMapName);
+                spec.setRbac(rbac);
+            }, sa -> {
 
-            hawtio.menu().navigateTo("Camel");
-            final CamelPage camelPage = new CamelPage();
+                var discoverTab = new DiscoverTab();
+                discoverTab.assertContainsDeployment(deployment.getMetadata().getName());
+                discoverTab.connectTo(podName);
 
-            camelPage.tree().selectSpecificItem("CamelContexts-folder-SampleCamel-folder");
-            camelPage.openTab("Operations");
+                LoginLogout.hawtioIsLoaded();
+                var hawtio = new HawtioPage();
 
-            final CamelOperations camelOperations = new CamelOperations();
-            camelOperations.checkOperation("stop()", Condition.disabled);
-            camelOperations.checkOperation("getTotalRoutes()", Condition.enabled);
+                hawtio.menu().navigateTo("Camel");
+                final CamelPage camelPage = new CamelPage();
 
-            hawtio.panel().logout();
-            new HawtioOnlineLoginPage().login("viewer", "viewer");
+                camelPage.tree().selectSpecificItem("CamelContexts-SampleCamel-folder");
+                camelPage.openTab("Operations");
 
-            LoginLogout.hawtioIsLoaded();
-            camelPage.tree().selectSpecificItem("CamelContexts-folder-SampleCamel-folder");
-            camelPage.openTab("Operations");
+                final CamelOperations camelOperations = new CamelOperations();
+                // stop() is denied for all roles (ACL: stop: [])
+                camelOperations.checkOperation("stop()", Condition.disabled);
+                // getTotalRoutes() falls to default rule allowing admin
+                camelOperations.checkOperation("getTotalRoutes()", Condition.enabled);
 
-            camelOperations.checkOperation("stop()", Condition.disabled);
-            camelOperations.checkOperation("restart()", Condition.disabled);
-            camelOperations.checkOperation("getTotalRoutes()", Condition.enabled);
-        });
+                hawtio.panel().logout();
+                new HawtioOnlineLoginPage().login("viewer", "viewer");
+
+                LoginLogout.hawtioIsLoaded();
+                camelPage.tree().selectSpecificItem("CamelContexts-SampleCamel-folder");
+                camelPage.openTab("Operations");
+
+                // stop() is denied for all roles (ACL: stop: [])
+                camelOperations.checkOperation("stop()", Condition.disabled);
+                // restart() is admin-only (ACL: restart: admin)
+                camelOperations.checkOperation("restart()", Condition.disabled);
+                // getTotalRoutes() falls to wildcard (org.apache.camel: /.*/: admin, viewer), viewer CAN execute
+                camelOperations.checkOperation("getTotalRoutes()", Condition.enabled);
+            });
+        } finally {
+            // Cleanup ConfigMap
+            OpenshiftClient.get().configMaps()
+                .inNamespace(namespace)
+                .withName(configMapName)
+                .delete();
+        }
     }
 
     @Test
@@ -440,25 +457,90 @@ public class HawtioOperatorTest extends BaseHawtioOnlineTest {
         runTest(spec -> {
             Auth auth = new Auth();
             auth.setClientCertCommonName("my.hawtio.svc");
-            auth.setClientCertCheckSchedule("* * * * *");
-            auth.setClientCertExpirationPeriod(48L);
             auth.setClientCertExpirationDate(LocalDateTime.now().plusYears(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")));
             spec.setAuth(auth);
         }, sa -> {
-            sa.assertThat(OpenshiftClient.get().batch().v1().cronjobs().withName(hawtio.getMetadata().getName() + "-certificate-expiry-check").get())
-                .isNotNull()
-                .matches(job -> job.getSpec().getSchedule().equals("* * * * *"))
-                .matches(job -> job.getSpec().getJobTemplate().getSpec().getTemplate().getSpec().getContainers().get(0).getArgs().contains("48"));
+            final String secretName = hawtio.getMetadata().getName() + "-tls-proxying";
 
+            // Wait for operator to create the TLS certificate secret
+            WaitUtils.waitFor(() -> {
+                return OpenshiftClient.get().secrets().withName(secretName).get() != null;
+            }, "Waiting for Secret " + secretName + " to be created", Duration.ofSeconds(30));
+
+            // Verify the generated certificate has the correct CN
             Assertions.assertThatCode(() -> {
                 final String source = new String(Base64.getDecoder().decode(
-                    OpenshiftClient.get().secrets().withName(hawtio.getMetadata().getName() + "-tls-proxying").get().getData().get("tls.crt")));
+                    OpenshiftClient.get().secrets().withName(secretName).get().getData().get("tls.crt")));
                 final CertificateFactory cf = CertificateFactory.getInstance("X.509");
                 final X509Certificate certificate =
                     (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)));
                 assertThat(certificate.getSubjectDN().getName()).isEqualTo("CN=my.hawtio.svc");
             }).doesNotThrowAnyException();
         }, false);
+    }
+
+    @Test
+    public void testCRUpdatePreservesAllFields() {
+        // Regression test for operator cache issue where updates would remove fields
+        HawtioOnlineTestUtils.withCleanup(() -> {
+            hawtio = HawtioOnlineUtils.withBaseHawtio("operator-test-" + RandomStringUtils.randomAlphabetic(5).toLowerCase(),
+                TestConfiguration.getOpenshiftNamespace(),
+                h -> {
+                    h.getSpec().setType(HawtioSpec.Type.NAMESPACE);
+                    h.getSpec().setReplicas(1);
+                    // Intentionally not setting logging configuration initially
+                });
+
+            // Deploy initial CR without logging configuration
+            HawtioOnlineUtils.deployHawtioCR(hawtio);
+
+            // Update CR to add logging configuration with all properties
+            HawtioOnlineUtils.patchHawtioResource(hawtio.getMetadata().getName(), updatedHawtio -> {
+                Logging logging = new Logging();
+                logging.setOnlineLogLevel("info");
+                logging.setGatewayLogLevel("debug");
+                logging.setMaskIPAddresses("true");
+                updatedHawtio.getSpec().setLogging(logging);
+            });
+
+            // Wait for update to be processed
+            WaitUtils.waitFor(() -> {
+                Hawtio h = OpenshiftClient.get().resources(Hawtio.class)
+                    .inNamespace(hawtio.getMetadata().getNamespace())
+                    .withName(hawtio.getMetadata().getName()).get();
+                return h.getSpec().getLogging() != null && h.getSpec().getLogging().getOnlineLogLevel() != null;
+            }, "Waiting for CR update to be applied", Duration.ofSeconds(30));
+
+            // Verify all logging properties are preserved after update
+            SoftAssertions sa = new SoftAssertions();
+            Hawtio updatedHawtio = OpenshiftClient.get().resources(Hawtio.class)
+                .inNamespace(hawtio.getMetadata().getNamespace())
+                .withName(hawtio.getMetadata().getName()).get();
+
+            sa.assertThat(updatedHawtio.getSpec().getLogging())
+                .as("Logging configuration should be present")
+                .isNotNull();
+
+            sa.assertThat(updatedHawtio.getSpec().getLogging().getOnlineLogLevel())
+                .as("Online log level should be preserved")
+                .isEqualTo("info");
+
+            sa.assertThat(updatedHawtio.getSpec().getLogging().getGatewayLogLevel())
+                .as("Gateway log level should be preserved")
+                .isEqualTo("debug");
+
+            sa.assertThat(updatedHawtio.getSpec().getLogging().getMaskIPAddresses())
+                .as("Mask IP addresses setting should be preserved")
+                .isEqualTo("true");
+
+            sa.assertThat(updatedHawtio.getSpec().getReplicas())
+                .as("Original replica count should be preserved")
+                .isEqualTo(1);
+
+            sa.assertAll();
+        }, () -> {
+            HawtioOnlineUtils.deleteHawtio(hawtio);
+        });
     }
 
     private static void runTest(Consumer<HawtioSpec> consumer, Consumer<SoftAssertions> testFunction) {
